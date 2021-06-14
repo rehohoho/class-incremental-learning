@@ -25,10 +25,10 @@ def compute_accuracy(tg_model, free_model, tg_feature_model, class_means, X_prot
         transform_proto = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5071,  0.4866,  0.4409), (0.2009,  0.1984,  0.2023)),])
         protoset = torchvision.datasets.CIFAR100(root='./data', train=False, download=False, transform=transform_proto)
         X_protoset_array = np.array(X_protoset_cumuls).astype('uint8')
-        protoset.test_data = X_protoset_array.reshape(-1, X_protoset_array.shape[2], X_protoset_array.shape[3], X_protoset_array.shape[4])
+        protoset.data = X_protoset_array.reshape(-1, X_protoset_array.shape[2], X_protoset_array.shape[3], X_protoset_array.shape[4])
         Y_protoset_cumuls = np.array(Y_protoset_cumuls).reshape(-1)
         map_Y_protoset_cumuls = map_labels(order_list, Y_protoset_cumuls)
-        protoset.test_labels = map_Y_protoset_cumuls
+        protoset.targets = map_Y_protoset_cumuls
         protoloader = torch.utils.data.DataLoader(protoset, batch_size=128, shuffle=True, num_workers=2)  
 
         fast_fc = torch.from_numpy(np.float32(class_means[:,:,0].T)).to(device)
@@ -66,11 +66,12 @@ def compute_accuracy(tg_model, free_model, tg_feature_model, class_means, X_prot
 
             if is_start_iteration:
                 outputs_feature = np.squeeze(tg_feature_model(inputs))
-            sqd_icarl = cdist(class_means[:,:,0].T, outputs_feature, 'sqeuclidean')
+            outputs_feature_np = outputs_feature.data.cpu().numpy()
+            sqd_icarl = cdist(class_means[:,:,0].T, outputs_feature_np, 'sqeuclidean')
             score_icarl = torch.from_numpy((-sqd_icarl).T).to(device)
             _, predicted_icarl = score_icarl.max(1)
             correct_icarl += predicted_icarl.eq(targets).sum().item()
-            sqd_ncm = cdist(class_means[:,:,1].T, outputs_feature, 'sqeuclidean')
+            sqd_ncm = cdist(class_means[:,:,1].T, outputs_feature_np, 'sqeuclidean')
             score_ncm = torch.from_numpy((-sqd_ncm).T).to(device)
             _, predicted_ncm = score_ncm.max(1)
             correct_ncm += predicted_ncm.eq(targets).sum().item()

@@ -59,10 +59,10 @@ class Trainer(object):
         dictionary_size = self.dictionary_size
         top1_acc_list_cumul = np.zeros((int(self.args.num_classes/self.args.nb_cl), 4, self.args.nb_runs))
         top1_acc_list_ori = np.zeros((int(self.args.num_classes/self.args.nb_cl), 4, self.args.nb_runs))
-        X_train_total = np.array(self.trainset.train_data)
-        Y_train_total = np.array(self.trainset.train_labels)
-        X_valid_total = np.array(self.testset.test_data)
-        Y_valid_total = np.array(self.testset.test_labels)
+        X_train_total = np.array(self.trainset.data)
+        Y_train_total = np.array(self.trainset.targets)
+        X_valid_total = np.array(self.testset.data)
+        Y_valid_total = np.array(self.testset.targets)
         np.random.seed(1993)
         for iteration_total in range(self.args.nb_runs):
             order_name = osp.join(self.save_path, "seed_{}_{}_order_run_{}.pkl".format(1993, self.args.dataset, iteration_total))
@@ -175,18 +175,18 @@ class Trainer(object):
                 for cls_idx in range(iteration*self.args.nb_cl, (iteration+1)*self.args.nb_cl):
                     cls_indices = np.array([i == cls_idx  for i in map_Y_train])
                     assert(len(np.where(cls_indices==1)[0])==dictionary_size)
-                    self.evalset.test_data = X_train[cls_indices].astype('uint8')
-                    self.evalset.test_labels = np.zeros(self.evalset.test_data.shape[0])
+                    self.evalset.data = X_train[cls_indices].astype('uint8')
+                    self.evalset.targets = np.zeros(self.evalset.data.shape[0])
                     evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size, shuffle=False, num_workers=self.args.num_workers)
-                    num_samples = self.evalset.test_data.shape[0]
+                    num_samples = self.evalset.data.shape[0]
                     cls_features = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
                     norm_features = F.normalize(torch.from_numpy(cls_features), p=2, dim=1)
                     cls_embedding = torch.mean(norm_features, dim=0)
                     novel_embedding[cls_idx-iteration*self.args.nb_cl] = F.normalize(cls_embedding, p=2, dim=0) * average_old_embedding_norm
                 tg_model.to(self.device)
                 tg_model.fc.fc2.weight.data = novel_embedding.to(self.device)
-            self.trainset.train_data = X_train.astype('uint8')
-            self.trainset.train_labels = map_Y_train
+            self.trainset.data = X_train.astype('uint8')
+            self.trainset.targets = map_Y_train
             if iteration > start_iter and self.args.rs_ratio > 0 and scale_factor > 1:
                 print("Weights from sampling:", rs_sample_weights)
                 index1 = np.where(rs_sample_weights>1)[0]
@@ -197,8 +197,8 @@ class Trainer(object):
             else:
                 trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=self.args.train_batch_size,
                     shuffle=True, num_workers=self.args.num_workers)
-            self.testset.test_data = X_valid_cumul.astype('uint8')
-            self.testset.test_labels = map_Y_valid_cumul
+            self.testset.data = X_valid_cumul.astype('uint8')
+            self.testset.targets = map_Y_valid_cumul
             testloader = torch.utils.data.DataLoader(self.testset, batch_size=self.args.test_batch_size,
                 shuffle=False, num_workers=self.args.num_workers)
             print('Max and min of train labels: {}, {}'.format(min(map_Y_train), max(map_Y_train)))
@@ -243,11 +243,11 @@ class Trainer(object):
             tg_feature_model = nn.Sequential(*list(tg_model.children())[:-1])
             num_features = tg_model.fc.in_features
             for iter_dico in range(last_iter*self.args.nb_cl, (iteration+1)*self.args.nb_cl):
-                self.evalset.test_data = prototypes[iter_dico].astype('uint8')
-                self.evalset.test_labels = np.zeros(self.evalset.test_data.shape[0])
+                self.evalset.data = prototypes[iter_dico].astype('uint8')
+                self.evalset.targets = np.zeros(self.evalset.data.shape[0])
                 evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                     shuffle=False, num_workers=self.args.num_workers)
-                num_samples = self.evalset.test_data.shape[0]            
+                num_samples = self.evalset.data.shape[0]            
                 mapped_prototypes = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
                 D = mapped_prototypes.T
                 D = D/np.linalg.norm(D,axis=0)
@@ -273,15 +273,15 @@ class Trainer(object):
             for iteration2 in range(iteration+1):
                 for iter_dico in range(self.args.nb_cl):
                     current_cl = order[range(iteration2*self.args.nb_cl,(iteration2+1)*self.args.nb_cl)]
-                    self.evalset.test_data = prototypes[iteration2*self.args.nb_cl+iter_dico].astype('uint8')
-                    self.evalset.test_labels = np.zeros(self.evalset.test_data.shape[0]) #zero labels
+                    self.evalset.data = prototypes[iteration2*self.args.nb_cl+iter_dico].astype('uint8')
+                    self.evalset.targets = np.zeros(self.evalset.data.shape[0]) #zero labels
                     evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)
-                    num_samples = self.evalset.test_data.shape[0]
+                    num_samples = self.evalset.data.shape[0]
                     mapped_prototypes = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
                     D = mapped_prototypes.T
                     D = D/np.linalg.norm(D,axis=0)
-                    self.evalset.test_data = prototypes[iteration2*self.args.nb_cl+iter_dico][:,:,:,::-1].astype('uint8')
+                    self.evalset.data = prototypes[iteration2*self.args.nb_cl+iter_dico][:,:,:,::-1].astype('uint8')
                     evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)
                     mapped_prototypes2 = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
@@ -386,15 +386,15 @@ class Trainer(object):
             for iteration2 in range(iteration+1):
                 for iter_dico in range(self.args.nb_cl):
                     current_cl = order[range(iteration2*self.args.nb_cl,(iteration2+1)*self.args.nb_cl)]
-                    self.evalset.test_data = prototypes[iteration2*self.args.nb_cl+iter_dico].astype('uint8')
-                    self.evalset.test_labels = np.zeros(self.evalset.test_data.shape[0]) #zero labels
+                    self.evalset.data = prototypes[iteration2*self.args.nb_cl+iter_dico].astype('uint8')
+                    self.evalset.targets = np.zeros(self.evalset.data.shape[0]) #zero labels
                     evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)
-                    num_samples = self.evalset.test_data.shape[0]
+                    num_samples = self.evalset.data.shape[0]
                     mapped_prototypes = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
                     D = mapped_prototypes.T
                     D = D/np.linalg.norm(D,axis=0)
-                    self.evalset.test_data = prototypes[iteration2*self.args.nb_cl+iter_dico][:,:,:,::-1].astype('uint8')
+                    self.evalset.data = prototypes[iteration2*self.args.nb_cl+iter_dico][:,:,:,::-1].astype('uint8')
                     evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)
                     mapped_prototypes2 = compute_features(tg_model, free_model, tg_feature_model, is_start_iteration, evalloader, num_samples, num_features)
@@ -413,8 +413,8 @@ class Trainer(object):
             is_start_iteration = (iteration == start_iter)
             map_Y_valid_ori = np.array([order_list.index(i) for i in Y_valid_ori])
             print('Computing accuracy for first-phase classes')
-            self.evalset.test_data = X_valid_ori.astype('uint8')
-            self.evalset.test_labels = map_Y_valid_ori
+            self.evalset.data = X_valid_ori.astype('uint8')
+            self.evalset.targets = map_Y_valid_ori
             evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size, shuffle=False, num_workers=self.args.num_workers)
             ori_acc, fast_fc = compute_accuracy(tg_model, free_model,  tg_feature_model, current_means, X_protoset_cumuls, Y_protoset_cumuls, evalloader, order_list, is_start_iteration=is_start_iteration, maml_lr=self.args.maml_lr, maml_epoch=self.args.maml_epoch)
             top1_acc_list_ori[iteration, :, iteration_total] = np.array(ori_acc).T
@@ -422,8 +422,8 @@ class Trainer(object):
             self.train_writer.add_scalar('ori_acc/iCaRL', float(ori_acc[1]), iteration)
             map_Y_valid_cumul = np.array([order_list.index(i) for i in Y_valid_cumul])
             print('Computing accuracy for all seen classes')
-            self.evalset.test_data = X_valid_cumul.astype('uint8')
-            self.evalset.test_labels = map_Y_valid_cumul
+            self.evalset.data = X_valid_cumul.astype('uint8')
+            self.evalset.targets = map_Y_valid_cumul
             evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size, shuffle=False, num_workers=self.args.num_workers)        
             cumul_acc, _ = compute_accuracy(tg_model, free_model, tg_feature_model, current_means, X_protoset_cumuls, Y_protoset_cumuls, evalloader, order_list, is_start_iteration=is_start_iteration, fast_fc=fast_fc, maml_lr=self.args.maml_lr, maml_epoch=self.args.maml_epoch)
             top1_acc_list_cumul[iteration, :, iteration_total] = np.array(cumul_acc).T

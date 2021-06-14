@@ -20,6 +20,7 @@ def compute_features(tg_model, free_model, tg_feature_model, is_start_iteration,
                 the_feature = tg_feature_model(inputs)
             else:
                 the_feature = process_inputs_fp(tg_model, free_model, inputs, feature_mode=True)
+            the_feature = the_feature.data.cpu().numpy() 
             features[start_idx:start_idx+inputs.shape[0], :] = np.squeeze(the_feature)
             start_idx = start_idx+inputs.shape[0]
     assert(start_idx==num_samples)

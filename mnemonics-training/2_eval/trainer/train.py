@@ -105,10 +105,10 @@ class Trainer(object):
         top1_acc_list_ori = np.zeros((int(self.args.num_classes/self.args.nb_cl), 4, self.args.nb_runs))
 
         if self.args.dataset == 'cifar100':
-            X_train_total = np.array(self.trainset.train_data)
-            Y_train_total = np.array(self.trainset.train_labels)
-            X_valid_total = np.array(self.testset.test_data)
-            Y_valid_total = np.array(self.testset.test_labels)
+            X_train_total = np.array(self.trainset.data)
+            Y_train_total = np.array(self.trainset.targets)
+            X_valid_total = np.array(self.testset.data)
+            Y_valid_total = np.array(self.testset.targets)
         elif self.args.dataset == 'imagenet_sub' or self.args.dataset == 'imagenet':
             X_train_total, Y_train_total = split_images_labels(self.trainset.imgs)
             X_valid_total, Y_valid_total = split_images_labels(self.testset.imgs)
@@ -206,8 +206,8 @@ class Trainer(object):
             if self.args.dataset == 'cifar100':
                 map_Y_valid_ori = np.array([order_list.index(i) for i in Y_valid_ori])
                 print('Computing accuracy on the original batch of classes...')
-                self.evalset.test_data = X_valid_ori.astype('uint8')
-                self.evalset.test_labels = map_Y_valid_ori
+                self.evalset.data = X_valid_ori.astype('uint8')
+                self.evalset.targets = map_Y_valid_ori
                 evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)
                 ori_acc = compute_accuracy(tg_model, tg_feature_model, evalloader)
@@ -215,8 +215,8 @@ class Trainer(object):
                 self.train_writer.add_scalar('ori_acc/cnn', float(ori_acc), iteration)
                 map_Y_valid_cumul = np.array([order_list.index(i) for i in Y_valid_cumul])
                 print('Computing cumulative accuracy...')
-                self.evalset.test_data = X_valid_cumul.astype('uint8')
-                self.evalset.test_labels = map_Y_valid_cumul
+                self.evalset.data = X_valid_cumul.astype('uint8')
+                self.evalset.targets = map_Y_valid_cumul
                 evalloader = torch.utils.data.DataLoader(self.evalset, batch_size=self.args.eval_batch_size,
                         shuffle=False, num_workers=self.args.num_workers)        
                 cumul_acc = compute_accuracy(tg_model, tg_feature_model, evalloader)

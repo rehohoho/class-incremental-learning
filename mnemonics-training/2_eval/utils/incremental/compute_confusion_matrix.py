@@ -26,8 +26,8 @@ def compute_confusion_matrix(tg_model, tg_feature_model, class_means, evalloader
 
     #evalset = torchvision.datasets.CIFAR100(root='./data', train=False,
     #                                   download=False, transform=transform_test)
-    #evalset.test_data = input_data.astype('uint8')
-    #evalset.test_labels = input_labels
+    #evalset.data = input_data.astype('uint8')
+    #evalset.targets = input_labels
     #evalloader = torch.utils.data.DataLoader(evalset, batch_size=128,
     #    shuffle=False, num_workers=2)
 
