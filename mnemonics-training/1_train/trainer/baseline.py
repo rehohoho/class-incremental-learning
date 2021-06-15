@@ -20,7 +20,8 @@ from tensorboardX import SummaryWriter
 from utils.compute_features import compute_features
 from utils.process_mnemonics import process_mnemonics
 from utils.compute_accuracy import compute_accuracy
-from trainer.incremental import incremental_train_and_eval
+from trainer.incremental import incremental_train_and_eval as incremental_icarl
+from trainer.incremental_lucir import incremental_train_and_eval_AMR_LF as incremental_lucir
 from utils.misc import *
 from utils.process_fp import process_inputs_fp
 warnings.filterwarnings('ignore')
@@ -32,7 +33,7 @@ class Trainer(object):
         if not osp.exists(self.log_dir):
             os.mkdir(self.log_dir)
         self.save_path = self.log_dir + self.args.dataset + '_nfg' + str(self.args.nb_cl_fg) + '_ncls' + str(self.args.nb_cl) + '_nproto' + str(self.args.nb_protos) 
-        self.save_path += '_' + self.args.method        
+        self.save_path += '_' + self.args.method + '_' + self.args.ckpt_label
         if not osp.exists(self.save_path):
             os.mkdir(self.save_path)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -46,6 +47,11 @@ class Trainer(object):
         self.lr_strat_first_phase = [int(160*0.5), int(160*0.75)]
         self.lr_strat = [int(self.args.epochs*0.5), int(self.args.epochs*0.75)]
         self.dictionary_size = self.args.dictionary_size
+
+        if self.args.lucir:
+            self.incremental_train_and_eval = incremental_lucir
+        else:
+            self.incremental_train_and_eval = incremental_icarl
 
     def map_labels(self, order_list, Y_set):
         map_Y = []
@@ -103,7 +109,7 @@ class Trainer(object):
                 last_iter = iteration
                 ref_model = copy.deepcopy(tg_model)
                 print("Fusion Mode: "+self.args.fusion_mode)
-                tg_model = self.network(num_classes=self.args.nb_cl_fg)
+                tg_model = self.network_mtl(num_classes=self.args.nb_cl_fg)
                 ref_dict = ref_model.state_dict()
                 tg_dict = tg_model.state_dict()
                 tg_dict.update(ref_dict)
@@ -232,9 +238,9 @@ class Trainer(object):
                     tg_lr_scheduler = lr_scheduler.MultiStepLR(tg_optimizer, milestones=self.lr_strat_first_phase, gamma=self.args.lr_factor)           
                 print("Incremental train")
                 if iteration > start_iter:
-                    tg_model = incremental_train_and_eval(self.args.epochs, tg_model, ref_model, free_model, ref_free_model, tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iter, cur_lamda, self.args.dist, self.args.K, self.args.lw_mr)   
+                    tg_model = self.incremental_train_and_eval(self.args.epochs, tg_model, ref_model, free_model, ref_free_model, tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iter, cur_lamda, self.args.dist, self.args.K, self.args.lw_mr)   
                 else:                    
-                    tg_model = incremental_train_and_eval(self.args.epochs, tg_model, ref_model, free_model, ref_free_model, tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iter, cur_lamda, self.args.dist, self.args.K, self.args.lw_mr)            
+                    tg_model = self.incremental_train_and_eval(self.args.epochs, tg_model, ref_model, free_model, ref_free_model, tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iter, cur_lamda, self.args.dist, self.args.K, self.args.lw_mr)            
                 torch.save(tg_model, ckp_name)
             if self.args.dynamic_budget:
                 nb_protos_cl = self.args.nb_protos
@@ -298,6 +304,8 @@ class Trainer(object):
                     class_means[:,current_cl[iter_dico],1] = (np.dot(D,alph)+np.dot(D2,alph))/2
                     class_means[:,current_cl[iter_dico],1] /= np.linalg.norm(class_means[:,current_cl[iter_dico],1])
             current_means = class_means[:, order[range(0,(iteration+1)*self.args.nb_cl)]]
+
+
             class_means = np.zeros((64,100,2))
             for iteration2 in range(iteration+1):
                 for iter_dico in range(self.args.nb_cl):

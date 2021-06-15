@@ -58,6 +58,7 @@ if __name__ == '__main__':
     parser.add_argument('--mnemonics_outer_lr', type=float, default=1e-5)
     parser.add_argument('--mnemonics_total_epochs', type=int, default=1)
     parser.add_argument('--mnemonics_decay_epochs', type=int, default=1)
+    parser.add_argument('--lucir', action='store_true')
 
     the_args = parser.parse_args()
 
