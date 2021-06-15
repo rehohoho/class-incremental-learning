@@ -7,7 +7,10 @@ from utils.misc import *
 from utils.process_fp import process_inputs_fp
 import torch.nn.functional as F
 
-def incremental_train_and_eval(epochs, tg_model, ref_model, free_model, ref_free_model, tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iteration, lamda, dist, K, lw_mr, fix_bn=False, weight_per_class=None, device=None):
+def incremental_train_and_eval(epochs, tg_model, ref_model, free_model, ref_free_model, 
+    tg_optimizer, tg_lr_scheduler, trainloader, testloader, iteration, start_iteration, 
+    lamda, dist, K, lw_mr, fix_bn=False, weight_per_class=None, device=None):
+
     if device is None:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     T = 2.0

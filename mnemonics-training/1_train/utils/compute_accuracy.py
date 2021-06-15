@@ -67,17 +67,21 @@ def compute_accuracy(tg_model, free_model, tg_feature_model, class_means, X_prot
             if is_start_iteration:
                 outputs_feature = np.squeeze(tg_feature_model(inputs))
             outputs_feature_np = outputs_feature.data.cpu().numpy()
+            
             sqd_icarl = cdist(class_means[:,:,0].T, outputs_feature_np, 'sqeuclidean')
             score_icarl = torch.from_numpy((-sqd_icarl).T).to(device)
             _, predicted_icarl = score_icarl.max(1)
             correct_icarl += predicted_icarl.eq(targets).sum().item()
+
             sqd_ncm = cdist(class_means[:,:,1].T, outputs_feature_np, 'sqeuclidean')
             score_ncm = torch.from_numpy((-sqd_ncm).T).to(device)
             _, predicted_ncm = score_ncm.max(1)
             correct_ncm += predicted_ncm.eq(targets).sum().item()
+
             the_logits = F.linear(F.normalize(torch.squeeze(outputs_feature), p=2,dim=1), F.normalize(fast_fc, p=2, dim=1))
             _, predicted_maml = the_logits.max(1)
             correct_maml += predicted_maml.eq(targets).sum().item()
+            
     cnn_acc = 100.*correct/total
     icarl_acc = 100.*correct_icarl/total
     ncm_acc = 100.*correct_ncm/total

@@ -298,6 +298,8 @@ class Trainer(object):
                     class_means[:,current_cl[iter_dico],1] = (np.dot(D,alph)+np.dot(D2,alph))/2
                     class_means[:,current_cl[iter_dico],1] /= np.linalg.norm(class_means[:,current_cl[iter_dico],1])
             current_means = class_means[:, order[range(0,(iteration+1)*self.args.nb_cl)]]
+
+            # where mnemonics is different
             X_protoset_array_old = np.array(X_protoset_cumuls)
             self.T = self.args.mnemonics_steps * self.args.mnemonics_epochs
             self.img_size = 32
@@ -382,6 +384,8 @@ class Trainer(object):
                     X_protoset_cumuls_idx += 1
                     this_X_protoset_array = this_X_protoset_array.astype(np.float64)
                     prototypes[iteration2*self.args.nb_cl+iter_dico,np.where(alph==1)[0]] = this_X_protoset_array
+            
+            
             class_means = np.zeros((64,100,2))
             for iteration2 in range(iteration+1):
                 for iter_dico in range(self.args.nb_cl):

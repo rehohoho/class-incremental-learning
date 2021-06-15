@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_dir_fg', type=str, default='-')
     parser.add_argument('--dynamic_budget', action='store_true')
     parser.add_argument('--phase', type=str, default='train', choices=['train', 'eval'])
-    parser.add_argument('--fusion_mode', default='free', type=str, choices=['std', 'free', 'mtl'])
+    parser.add_argument('--fusion_mode', default='free', type=str, choices=['std', 'free', 'mtl']) # doesn't matter
     parser.add_argument('--ckpt_label', type=str, default='01')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--load_iter', default=0, type=int)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--rs_ratio', default=0, type=float)
     parser.add_argument('--less_forget', action='store_true')
     parser.add_argument('--lamda', default=5, type=float)
-    parser.add_argument('--adapt_lamda', action='store_true')
+    parser.add_argument('--adapt_lamda', action='store_true') # on either way
     parser.add_argument('--dist', default=0.5, type=float)
     parser.add_argument('--K', default=2, type=int)
     parser.add_argument('--lw_mr', default=1, type=float)
