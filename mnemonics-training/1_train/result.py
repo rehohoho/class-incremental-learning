@@ -16,13 +16,13 @@ if __name__ == '__main__':
     
     accuracyLines = [s for s in data if 'Accuracy for LwF' in s]
     accuracy = []
-    for i in range(0, len(accuracyLines), 2):
+    for i in range(1, len(accuracyLines), 2):
         accuracy.append(
             '.'.join(re.findall(r'\d+', accuracyLines[i]))
         )
     accuracy = np.array([float(i) for i in accuracy])
     
-    plt.plot(range(len(accuracy)), accuracy, '-', label='Accuracy for LUCIR baseline')
+    plt.plot(range(len(accuracy)-1, 2*len(accuracy)-1), accuracy, '-', label='Accuracy for LUCIR baseline')
     plt.legend()
     plt.savefig(args.train_logs.replace('train.log', 'train.png'))
 
