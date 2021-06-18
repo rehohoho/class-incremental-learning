@@ -1,4 +1,5 @@
 import math
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import models.modified_linear as modified_linear
@@ -51,7 +52,13 @@ class ResNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, 16, layers[0])
         self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 64, layers[2], stride=2, last_phase=True)
+
+        if len(layers) == 4:
+            self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
+            self.layer4 = self._make_layer(block, 64, layers[3], last_phase=True)
+        else:
+            self.layer3 = self._make_layer(block, 64, layers[2], stride=2, last_phase=True)
+
         self.avgpool = nn.AvgPool2d(8, stride=1)
         self.fc = modified_linear.CosineLinear(64 * block.expansion, num_classes)
 
@@ -92,6 +99,8 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
+        if hasattr(self, 'layer4'):
+            x = self.layer4(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
@@ -102,4 +111,12 @@ class ResNet(nn.Module):
 def resnet32(pretrained=False, **kwargs):
     n = 5
     model = ResNet(BasicBlock, [n, n, n], **kwargs)
+    return model
+
+def resnet18(pretrained=False, **kwargs):
+    return ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+
+def resnet18_pretrained(num_classes, **kwargs):
+    model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+    model.fc = modified_linear.CosineLinear(512, num_classes)
     return model

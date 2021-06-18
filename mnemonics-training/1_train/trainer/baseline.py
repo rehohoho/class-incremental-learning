@@ -42,8 +42,16 @@ class Trainer(object):
         self.trainset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=self.transform_train)
         self.testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=self.transform_test)
         self.evalset = torchvision.datasets.CIFAR100(root='./data', train=False, download=False, transform=self.transform_test)
-        self.network = modified_resnet_cifar.resnet32
-        self.network_mtl = modified_resnetmtl_cifar.resnetmtl32
+        
+        if self.args.backbone == 32:
+            self.network = modified_resnet_cifar.resnet32
+            self.network_mtl = modified_resnetmtl_cifar.resnetmtl32
+        elif self.args.backbone == 18:
+            self.network = modified_resnet_cifar.resnet18
+            self.network_mtl = modified_resnetmtl_cifar.resnetmtl18
+        else:
+            raise NotImplementedError("Unknown backbone configuration.")
+
         self.lr_strat_first_phase = [int(160*0.5), int(160*0.75)]
         self.lr_strat = [int(self.args.epochs*0.5), int(self.args.epochs*0.75)]
         self.dictionary_size = self.args.dictionary_size
